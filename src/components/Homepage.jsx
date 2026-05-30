@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import SearchBar from '../Searchbar.jsx';
 import MovieCard from '../Moviecard.jsx';
 import SelectedList from '../Selectedlist.jsx';
@@ -19,7 +18,6 @@ const POPULAR_MOVIES = [
 ];
 
 function HomePage() {
-  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [selected, setSelected] = useState([]);
@@ -29,17 +27,29 @@ function HomePage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const fetchMovieById = async function (imdbID) {
+    const response = await fetch(`https://www.omdbapi.com/?i=${imdbID}&apikey=${OMDB_KEY}`);
+    return response.json();
+  };
+
+  const isMovieAlreadySelected = function (movie) {
+    return selected.find(function (item) {
+      return item.imdbID === movie.imdbID;
+    }) !== undefined;
+  };
+
   useEffect(() => {
-    const fetchPopularMovies = async () => {
+    const fetchPopularMovies = async function () {
       setLoading(true);
       try {
-        const movies = await Promise.all(
-          POPULAR_MOVIES.map((imdbID) =>
-            fetch(`https://www.omdbapi.com/?i=${imdbID}&apikey=${OMDB_KEY}`)
-              .then((r) => r.json())
-          )
-        );
-        setResults(movies.filter((m) => m.Title));
+        const movies = [];
+        for (let i = 0; i < POPULAR_MOVIES.length; i += 1) {
+          const movie = await fetchMovieById(POPULAR_MOVIES[i]);
+          if (movie.Title) {
+            movies.push(movie);
+          }
+        }
+        setResults(movies);
       } catch {
         setError('Filmler yüklenemedi');
       } finally {
@@ -73,7 +83,9 @@ function HomePage() {
   };
 
   const handleAdd = (movie) => {
-    if (selected.find((m) => m.imdbID === movie.imdbID)) return;
+    if (isMovieAlreadySelected(movie)) {
+      return;
+    }
     setSelected([...selected, movie]);
   };
 
@@ -85,9 +97,9 @@ function HomePage() {
     if (selected.length === 0) return;
     setSaving(true);
     try {
-      
       const listId = Date.now().toString();
-      const savedLists = JSON.parse(localStorage.getItem('movieLists')) || [];
+      const savedListsString = localStorage.getItem('movieLists');
+      const savedLists = savedListsString ? JSON.parse(savedListsString) : [];
       const newList = {
         id: listId,
         title: listName,
@@ -133,7 +145,7 @@ function HomePage() {
               key={movie.imdbID}
               movie={movie}
               onAdd={handleAdd}
-              isAdded={!!selected.find((m) => m.imdbID === movie.imdbID)}
+              isAdded={isMovieAlreadySelected(movie)}
             />
           ))}
         </div>
