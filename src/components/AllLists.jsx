@@ -9,8 +9,9 @@ function AllLists() {
   }, []);
 
   const loadLists = () => {
-    const savedLists = JSON.parse(localStorage.getItem('movieLists')) || [];
-    setLists(savedLists.reverse());
+    const savedListsString = localStorage.getItem('movieLists');
+    const savedLists = savedListsString ? JSON.parse(savedListsString) : [];
+    setLists(savedLists.slice().reverse());
   };
 
   useEffect(() => {
@@ -23,10 +24,11 @@ function AllLists() {
 
   const handleDelete = (id) => {
     if (confirm('Bu siyahı silmək istəyirsən?')) {
-      const savedLists = JSON.parse(localStorage.getItem('movieLists')) || [];
+      const savedListsString = localStorage.getItem('movieLists');
+      const savedLists = savedListsString ? JSON.parse(savedListsString) : [];
       const updatedLists = savedLists.filter((l) => l.id !== id);
       localStorage.setItem('movieLists', JSON.stringify(updatedLists));
-      setLists(updatedLists.reverse());
+      setLists(updatedLists.slice().reverse());
     }
   };
 
