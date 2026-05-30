@@ -12,32 +12,36 @@ function ListPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchList = async () => {
+    const fetchMovieById = async function (imdbID) {
+      const response = await fetch(`https://www.omdbapi.com/?i=${imdbID}&apikey=${OMDB_KEY}`);
+      return response.json();
+    };
+
+    const fetchList = async function () {
       try {
-        const savedLists = JSON.parse(localStorage.getItem('movieLists')) || [];
-        const localList = savedLists.find((l) => l.id === id);
+        const savedListsString = localStorage.getItem('movieLists');
+        const savedLists = savedListsString ? JSON.parse(savedListsString) : [];
+        const localList = savedLists.find(function (l) {
+          return l.id === id;
+        });
         
         if (localList) {
           setListData(localList);
-          
-          const movieDetails = await Promise.all(
-            localList.movies.map((imdbID) =>
-              fetch(`https://www.omdbapi.com/?i=${imdbID}&apikey=${OMDB_KEY}`)
-                .then((r) => r.json())
-            )
-          );
+          const movieDetails = [];
+          for (let i = 0; i < localList.movies.length; i += 1) {
+            const movie = await fetchMovieById(localList.movies[i]);
+            movieDetails.push(movie);
+          }
           setMovies(movieDetails);
         } else {
           const res = await fetch(`https://acb-api.algoritmika.org/api/movies/list/${id}`);
           const data = await res.json();
           setListData(data);
-
-          const movieDetails = await Promise.all(
-            data.movies.map((imdbID) =>
-              fetch(`https://www.omdbapi.com/?i=${imdbID}&apikey=${OMDB_KEY}`)
-                .then((r) => r.json())
-            )
-          );
+          const movieDetails = [];
+          for (let i = 0; i < data.movies.length; i += 1) {
+            const movie = await fetchMovieById(data.movies[i]);
+            movieDetails.push(movie);
+          }
           setMovies(movieDetails);
         }
       } catch (err) {
@@ -58,7 +62,7 @@ function ListPage() {
     <div className="list-page">
       <header className="list-header">
         <Link to="/" className="back-link">← Ana səhifə</Link>
-        <h1 className="list-page-title">🎬 {listData?.title}</h1>
+        <h1 className="list-page-title">🎬 {listData && listData.title}</h1>
         <p className="list-count">{movies.length} film</p>
       </header>
 
